@@ -1,0 +1,95 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #111;
+}
+
+.container {
+  display: flex;
+  align-items: flex-start;
+}
+
+.label-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 5px;
+  height: 80vh;
+}
+
+.corner {
+  height: 30px;
+}
+
+.row-label {
+  height: 20%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px black;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.label-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: 30px;
+  width: 100%;
+  max-width: 80vh;
+  aspect-ratio: 1 / 1;
+  margin-bottom: 5px;
+}
+
+.col-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px black;
+}
+
+.grid-background {
+  background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Philippines_relief_location_map_%28square%29.svg/2048px-Philippines_relief_location_map_%28square%29.svg.png');
+  background-size: cover;
+  background-position: center;
+  height: 80vh;
+  aspect-ratio: 1 / 1;
+  display: inline-block;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  height: 100%;
+  width: 100%;
+  gap: 2px;
+}
+
+.cell {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background-color: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cell:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}

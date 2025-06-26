@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wargame</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="label-col">
+      <div class="corner"></div>
+      <div class="row-label">1</div>
+      <div class="row-label">2</div>
+      <div class="row-label">3</div>
+      <div class="row-label">4</div>
+      <div class="row-label">5</div>
+    </div>
+
+    <div class="main">
+      <div class="label-row">
+        <div class="col-label">A</div>
+        <div class="col-label">B</div>
+        <div class="col-label">C</div>
+        <div class="col-label">D</div>
+        <div class="col-label">E</div>
+      </div>
+
+      <div class="grid-background">
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const grid = document.getElementById("grid");
+    const columns = ["A", "B", "C", "D", "E"];
+
+    for (let row = 1; row <= 5; row++) {
+      for (let col = 0; col < 5; col++) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.dataset.row = row;
+        cell.dataset.col = columns[col];
+
+        cell.addEventListener("click", () => {
+          const cellId = `${columns[col]}${row}`;
+          fetch("http://localhost:5000/api/cell-click", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cell: cellId })
+          })
+          .then(res => res.json())
+          .then(data => console.log("Server response:", data))
+          .catch(err => console.error("API error:", err));
+        });
+
+        grid.appendChild(cell);
+      }
+    }
+  </script>
+</body>
+</html>
