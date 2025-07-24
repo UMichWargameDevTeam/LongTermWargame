@@ -9,6 +9,7 @@ import ResourcePoints from '@/components/ResourcePoints';
 import CommandersIntent from '@/components/CommandersIntent';
 import BattlefieldGrid from '@/components/InteractiveMap';
 import InteractiveMap from '@/components/InteractiveMap';
+import JTFCCMenu from '@/components/JTFCCMenu/JTFCCMenu';
 
 export default function MainMapPage() {
     const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -106,6 +107,10 @@ export default function MainMapPage() {
                     <AvailableAssets />
                     <ResourcePoints />
                 </>
+            )}
+            {/* Menu for JTF-CC */}
+            {role === 'JTF-CC' && (
+                <JTFCCMenu />
             )}
 
         </div>
