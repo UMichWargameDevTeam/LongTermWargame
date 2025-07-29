@@ -1,4 +1,5 @@
 # Ignore virtual environment
+env/
 backend/env/
 
 # Python cache and compiled files
