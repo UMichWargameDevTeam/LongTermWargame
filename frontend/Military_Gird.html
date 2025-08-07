@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Density Grid System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #2c5f2d, #1a3d1b);
+        }
+
+        #mainContainer {
+            width: 300vw; /* Large container to enable scrolling */
+            height: 300vh;
+            position: relative;
+            overflow: visible;
+        }
+
+        #mapContainer {
+            position: absolute;
+            top: 100vh;
+            left: 100vw;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/f/f4/Map_of_Philippines_%28en%29.png');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            background-color: #9dcfc9;
+            transform-origin: center center;
+            transition: transform 0.1s ease;
+        }
+
+        #gridOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 300vw;
+            height: 300vh;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .grid-square {
+            position: absolute;
+            border: 1px solid rgba(0, 0, 0, 0.4);
+            background: transparent;
+            pointer-events: auto;
+            transition: all 0.1s ease;
+        }
+
+        .grid-square.level-1 {
+            border: 2px solid rgba(0, 0, 0, 0.7);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .grid-square.level-2 {
+            border: 1px solid rgba(0, 0, 0, 0.5);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .grid-square.level-3 {
+            border: 1px solid rgba(0, 0, 0, 0.3);
+            background: transparent;
+        }
+
+        .grid-square:hover {
+            background: rgba(76, 175, 80, 0.1) !important;
+            border-color: #4caf50 !important;
+        }
+
+        .grid-label {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            font-size: 10px;
+            color: rgba(0, 0, 0, 0.9);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+            pointer-events: none;
+            user-select: none;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            transition: all 0.1s ease;
+        }
+
+        .grid-label.small {
+            font-size: 8px;
+            padding: 1px 2px;
+        }
+
+        .grid-label.tiny {
+            font-size: 6px;
+            padding: 1px 2px;
+        }
+
+        .major-grid-line {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        .medium-grid-line {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            z-index: 12;
+        }
+
+        .minor-grid-line {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+            z-index: 8;
+        }
+
+        .info-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #4caf50;
+            border-radius: 8px;
+            padding: 15px;
+            color: #4caf50;
+            font-size: 12px;
+            z-index: 1000;
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+            min-width: 220px;
+        }
+
+        .scale-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #4caf50;
+            border-radius: 8px;
+            padding: 15px;
+            color: #4caf50;
+            font-size: 12px;
+            z-index: 1000;
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+        }
+
+        .scale-bar {
+            width: 100px;
+            height: 4px;
+            background: #4caf50;
+            margin: 8px 0;
+            position: relative;
+        }
+
+        .scale-bar::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: -2px;
+            height: 8px;
+            border-left: 2px solid #4caf50;
+            border-right: 2px solid #4caf50;
+        }
+
+        .coordinates-display {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #ff9800;
+            border-radius: 8px;
+            padding: 10px;
+            color: #ff9800;
+            font-size: 11px;
+            z-index: 1000;
+            box-shadow: 0 0 20px rgba(255, 152, 0, 0.3);
+        }
+
+        .grid-density-indicator {
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(76, 175, 80, 0.1);
+            border-radius: 4px;
+            border-left: 3px solid #4caf50;
+        }
+
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 16px;
+            height: 16px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(76, 175, 80, 0.8);
+            border-radius: 8px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(76, 175, 80, 1);
+            background-clip: content-box;
+        }
+
+        ::-webkit-scrollbar-corner {
+            background: rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="mainContainer">
+        <div id="mapContainer"></div>
+        <div id="gridOverlay"></div>
+    </div>
+
+    <div class="info-panel">
+        <div style="font-weight: bold; margin-bottom: 10px; text-align: center;">TACTICAL GRID SYSTEM</div>
+        
+        <div style="margin-bottom: 10px;">
+            <strong>Controls:</strong><br>
+            • Ctrl + Mouse wheel: Zoom in/out<br>
+            • Scroll bars: Navigate map<br>
+            • Grid auto-adapts to zoom level
+        </div>
+
+        <div style="margin-bottom: 10px;">
+            <strong>Current Zoom:</strong> <span id="currentZoom">100%</span><br>
+            <strong>Grid Level:</strong> <span id="gridLevel">Level 1</span>
+        </div>
+
+        <div class="grid-density-indicator">
+            <div style="font-size: 11px; font-weight: bold; margin-bottom: 4px;">Grid Density:</div>
+            <div id="gridDensityDesc">Large squares (10km)</div>
+        </div>
+
+        <div style="font-size: 10px; color: rgba(76, 175, 80, 0.8); line-height: 1.3;">
+            <strong>Zoom Levels:</strong><br>
+            50-80%: Level 1 (Large grid)<br>
+            81-150%: Level 2 (Medium grid)<br>
+            151-300%: Level 3 (Fine grid)
+        </div>
+    </div>
+
+    <div class="scale-indicator">
+        <div>Grid Reference Scale</div>
+        <div class="scale-bar"></div>
+        <div id="scaleText">10 km per square</div>
+        <div style="margin-top: 8px; font-size: 10px; opacity: 0.8;">
+            Zoom: <span id="scaleZoom">100%</span>
+        </div>
+    </div>
+
+    <div class="coordinates-display">
+        <div style="font-weight: bold; margin-bottom: 5px;">Mouse Position</div>
+        <div>Grid: <span id="mouseGrid">--</span></div>
+        <div>Level: <span id="mouseLevel">--</span></div>
+        <div>Coordinates: <span id="mouseCoords">--</span></div>
+    </div>
+
+    <script>
+        // Dynamic Grid System Configuration
+        let currentZoom = 1;
+        let currentGridLevel = 1;
+        let gridSquares = [];
+
+        // Grid level configurations
+        const GRID_CONFIGS = {
+            1: { // Large grid (50-80% zoom)
+                size: 120,
+                description: "Large squares (10km)",
+                scaleText: "10 km per square",
+                cols: 30,
+                rows: 30,
+                majorInterval: 5
+            },
+            2: { // Medium grid (81-150% zoom)
+                size: 60,
+                description: "Medium squares (5km)",
+                scaleText: "5 km per square",
+                cols: 60,
+                rows: 60,
+                majorInterval: 10
+            },
+            3: { // Fine grid (151-300% zoom)
+                size: 30,
+                description: "Fine squares (2km)",
+                scaleText: "2 km per square",
+                cols: 120,
+                rows: 120,
+                majorInterval: 20
+            }
+        };
+
+        // Determine grid level based on zoom
+        function getGridLevel(zoom) {
+            if (zoom <= 0.8) return 1;
+            if (zoom <= 1.5) return 2;
+            return 3;
+        }
+
+        // Initialize the dynamic grid system
+        function initializeGrid() {
+            const newGridLevel = getGridLevel(currentZoom);
+            
+            // Only rebuild grid if level changed
+            if (newGridLevel !== currentGridLevel) {
+                currentGridLevel = newGridLevel;
+                buildGrid();
+            }
+            
+            updateGridInfo();
+        }
+
+        function buildGrid() {
+            const gridOverlay = document.getElementById('gridOverlay');
+            gridOverlay.innerHTML = '';
+            gridSquares = [];
+
+            const config = GRID_CONFIGS[currentGridLevel];
+            
+            // Create grid lines
+            createGridLines(config, gridOverlay);
+
+            // Create all grid squares for current level
+            for (let row = 1; row <= config.rows; row++) {
+                for (let col = 1; col <= config.cols; col++) {
+                    const square = createGridSquare(col, row, config);
+                    gridSquares.push(square);
+                    gridOverlay.appendChild(square);
+                }
+            }
+
+            console.log(`Built grid level ${currentGridLevel} with ${config.cols}x${config.rows} squares`);
+        }
+
+        function createGridLines(config, container) {
+            // Major grid lines
+            for (let col = config.majorInterval; col <= config.cols; col += config.majorInterval) {
+                const line = document.createElement('div');
+                line.className = 'major-grid-line';
+                line.style.left = (col * config.size - 2) + 'px';
+                line.style.top = '0px';
+                line.style.width = '3px';
+                line.style.height = (config.rows * config.size) + 'px';
+                container.appendChild(line);
+            }
+
+            for (let row = config.majorInterval; row <= config.rows; row += config.majorInterval) {
+                const line = document.createElement('div');
+                line.className = 'major-grid-line';
+                line.style.left = '0px';
+                line.style.top = (row * config.size - 2) + 'px';
+                line.style.width = (config.cols * config.size) + 'px';
+                line.style.height = '3px';
+                container.appendChild(line);
+            }
+
+            // Medium grid lines (every 5 for level 2 and 3)
+            if (currentGridLevel >= 2) {
+                for (let col = 5; col <= config.cols; col += 5) {
+                    if (col % config.majorInterval !== 0) {
+                        const line = document.createElement('div');
+                        line.className = 'medium-grid-line';
+                        line.style.left = (col * config.size - 1) + 'px';
+                        line.style.top = '0px';
+                        line.style.width = '2px';
+                        line.style.height = (config.rows * config.size) + 'px';
+                        container.appendChild(line);
+                    }
+                }
+
+                for (let row = 5; row <= config.rows; row += 5) {
+                    if (row % config.majorInterval !== 0) {
+                        const line = document.createElement('div');
+                        line.className = 'medium-grid-line';
+                        line.style.left = '0px';
+                        line.style.top = (row * config.size - 1) + 'px';
+                        line.style.width = (config.cols * config.size) + 'px';
+                        line.style.height = '2px';
+                        container.appendChild(line);
+                    }
+                }
+            }
+        }
+
+        function createGridSquare(col, row, config) {
+            const square = document.createElement('div');
+            square.className = `grid-square level-${currentGridLevel}`;
+            
+            // Absolute positioning based on row and column
+            const x = (col - 1) * config.size;
+            const y = (row - 1) * config.size;
+            
+            square.style.left = x + 'px';
+            square.style.top = y + 'px';
+            square.style.width = config.size + 'px';
+            square.style.height = config.size + 'px';
+            
+            square.setAttribute('data-col', col);
+            square.setAttribute('data-row', row);
+            square.setAttribute('data-level', currentGridLevel);
+
+            // Create grid reference with level prefix
+            const gridRef = generateGridReference(row, col, currentGridLevel);
+            const label = document.createElement('div');
+            label.className = getGridLabelClass(config.size);
+            label.textContent = gridRef;
+            square.appendChild(label);
+
+            // Event listeners for mouse tracking - FIXED
+            square.addEventListener('mouseenter', handleSquareHover);
+            square.addEventListener('mousemove', handleSquareHover);
+            square.addEventListener('mouseleave', handleSquareLeave);
+
+            return square;
+        }
+
+        function getGridLabelClass(size) {
+            if (size <= 30) return 'grid-label tiny';
+            if (size <= 60) return 'grid-label small';
+            return 'grid-label';
+        }
+
+        function generateGridReference(row, col, level) {
+            // Convert column number to letter (A=1, B=2, etc.)
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            let colLetter = '';
+            let tempCol = col - 1;
+            
+            while (tempCol >= 0) {
+                colLetter = letters[tempCol % 26] + colLetter;
+                tempCol = Math.floor(tempCol / 26) - 1;
+            }
+            
+            // Add level prefix for clarity
+            const levelPrefix = ['', 'L', 'M', 'S'][level]; // Large, Medium, Small
+            return `${levelPrefix}${row}${colLetter}`;
+        }
+
+        function updateGridInfo() {
+            const config = GRID_CONFIGS[currentGridLevel];
+            const zoomPercent = Math.round(currentZoom * 100);
+            
+            document.getElementById('currentZoom').textContent = zoomPercent + '%';
+            document.getElementById('scaleZoom').textContent = zoomPercent + '%';
+            document.getElementById('gridLevel').textContent = `Level ${currentGridLevel}`;
+            document.getElementById('gridDensityDesc').textContent = config.description;
+            document.getElementById('scaleText').textContent = config.scaleText;
+        }
+
+        // Mouse wheel zoom functionality
+        function setupMouseWheelZoom() {
+            document.addEventListener('wheel', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    
+                    const zoomFactor = 0.05;
+                    const oldZoom = currentZoom;
+                    
+                    if (e.deltaY < 0) {
+                        // Zoom in
+                        currentZoom = Math.min(currentZoom + zoomFactor, 3.0);
+                    } else {
+                        // Zoom out
+                        currentZoom = Math.max(currentZoom - zoomFactor, 0.5);
+                    }
+                    
+                    if (oldZoom !== currentZoom) {
+                        updateMapZoom();
+                        initializeGrid();
+                    }
+                }
+            }, { passive: false });
+        }
+
+        function updateMapZoom() {
+            const mapContainer = document.getElementById('mapContainer');
+            mapContainer.style.transform = `scale(${currentZoom})`;
+        }
+
+        // Event handlers - FIXED AND IMPROVED
+        function handleSquareHover(e) {
+            const square = e.target.closest('.grid-square');
+            if (!square) return;
+
+            const col = parseInt(square.getAttribute('data-col'));
+            const row = parseInt(square.getAttribute('data-row'));
+            const level = parseInt(square.getAttribute('data-level'));
+            const gridRef = generateGridReference(row, col, level);
+            
+            // Update the coordinates display
+            document.getElementById('mouseGrid').textContent = gridRef;
+            document.getElementById('mouseLevel').textContent = `Level ${level}`;
+            document.getElementById('mouseCoords').textContent = `Col:${col}, Row:${row}`;
+        }
+
+        function handleSquareLeave(e) {
+            // Optional: Clear coordinates when mouse leaves grid
+            // Uncomment these lines if you want coordinates to clear on mouse leave
+            // document.getElementById('mouseGrid').textContent = '--';
+            // document.getElementById('mouseLevel').textContent = '--';
+            // document.getElementById('mouseCoords').textContent = '--';
+        }
+
+        // Add global mousemove listener as backup for edge cases
+        document.addEventListener('mousemove', (e) => {
+            // Check if mouse is over a grid square
+            const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
+            if (elementUnderMouse && elementUnderMouse.closest('.grid-square')) {
+                // Let the square's own event handler deal with it
+                return;
+            }
+            
+            // If not over a grid square, you could clear the display or leave it as is
+            // For now, we'll leave the last known coordinates showing
+        });
+
+        // Initialize everything
+        window.addEventListener('load', () => {
+            buildGrid();
+            setupMouseWheelZoom();
+            updateMapZoom();
+            updateGridInfo();
+            
+            // Scroll to center of the grid
+            const config = GRID_CONFIGS[currentGridLevel];
+            window.scrollTo(
+                (config.cols * config.size - window.innerWidth) / 2,
+                (config.rows * config.size - window.innerHeight) / 2
+            );
+            
+            console.log('Grid system initialized with mouse tracking enabled');
+        });
+
+        // Prevent zoom on regular scroll
+        document.addEventListener('wheel', (e) => {
+            if (!e.ctrlKey && !e.metaKey) {
+                // Allow normal scrolling
+                return true;
+            }
+        });
+    </script>
+</body>
+</html>
