@@ -79,7 +79,7 @@ export default function CreateGamePage() {
         } catch (err: unknown) {
             if (err instanceof Error)
                 console.error(err.message);
-            else 
+            else
                 console.error("An unkown error has occured.")
         }
     };
@@ -112,6 +112,7 @@ export default function CreateGamePage() {
                                 onChange={(e) => setJoinCode(e.target.value)}
                                 className="px-4 py-2 text-black rounded w-full bg-white"
                                 placeholder="e.g. redvsblue2025"
+                                readOnly={success}
                             />
                             <button
                                 onClick={handleCreate}
@@ -185,7 +186,7 @@ export default function CreateGamePage() {
                     </div>
                 </div>
                 <div className="bg-neutral-800 rounded-lg max-w-md max-h-[475px] overflow-y-auto">
-                    <UsersList/>
+                    <UsersList />
                 </div>
             </div>
         </div>

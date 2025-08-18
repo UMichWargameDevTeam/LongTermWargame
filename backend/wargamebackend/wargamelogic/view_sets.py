@@ -114,7 +114,49 @@ class GameInstanceViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(join_code=join_code)
         return queryset
 
-    # anyone can create a game.
+
+    @require_role_instance({
+        'team_instance.game_instance': lambda request, kwargs: get_object_or_404(GameInstance, pk=kwargs['pk']), 
+        'role.name':'Gamemaster'
+    })
+    def start(self, request, pk=None):
+        game_instance = self.get_object()
+        team_instances = TeamInstance.objects.filter(game_instance=game_instance)
+
+        unit_config = [
+            {"unit_name": "Infantry", "row": 0, "column": 0, "health": 100, "supply": 50},
+            {"unit_name": "Tank", "row": 1, "column": 1, "health": 200, "supply": 30},
+        ]
+
+        for team_instance in team_instances:
+            for cfg in unit_config:
+                unit = Unit.objects.get(name=cfg["unit_name"])
+                tile, _ = Tile.objects.get_or_create(row=cfg["row"], column=cfg["column"])
+                UnitInstance.objects.create(
+                    team_instance=team_instance,
+                    unit=unit,
+                    tile=tile,
+                    health=cfg["health"],
+                    supply_count=cfg["supply"]
+                )
+        self.partial_update(is_started=True)
+        return Response({"Status": "Game started, units created successfully"}, status=status.HTTP_200_OK)
+
+    @require_role_instance({
+        'team_instance.game_instance': lambda request, kwargs: get_object_or_404(GameInstance, pk=kwargs['pk']), 
+        'role.name':'Gamemaster'
+    })
+    def create(self, request, *args, **kwargs):
+        response = super().create(request,*args, **kwargs)
+        game_instance = GameInstance.objects.get(pk=response.data["id"])
+        red_team = Team.objects.get(name="Red")
+        blue_team = Team.objects.get(name="Blue")
+
+        red_instance = TeamInstance.objects.create(game_instance=game_instance, team=red_team)
+        blue_instance = TeamInstance.objects.create(game_instance=game_instance, team=blue_team)
+
+        # TODO potentially start creating units from config here
+        return response
 
     @require_role_instance({
         'team_instance.game_instance': lambda request, kwargs: get_object_or_404(GameInstance, pk=kwargs['pk']), 
